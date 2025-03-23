@@ -87,7 +87,7 @@ public class BinaryTree<T> : IEnumerable<T> where T : IComparable<T>
             get
             {
                 if (current == null)
-                    throw new InvalidOperationException("Итератор не инициализирован.");
+                    return default(T); // изменил throw, возвращается значение по умолчанию
                 return current.Value;
             }
         }
