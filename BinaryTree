@@ -1,0 +1,232 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+public class BinaryTree<T> : IEnumerable<T> where T : IComparable<T>
+{
+    internal class Node
+    {
+        public T Value { get; set; }
+        public Node? Left { get; set; }
+        public Node? Right { get; set; }
+        public Node? Parent { get; set; }
+
+        public Node(T value)
+        {
+            Value = value;
+            Left = null;
+            Right = null;
+            Parent = null;
+        }
+    }
+
+    private Node? root;
+
+    public void Add(T value)
+    {
+        if (root == null)
+        {
+            root = new Node(value);
+        }
+        else
+        {
+            Add(root, value);
+        }
+    }
+
+    private void Add(Node node, T value)
+    {
+        if (value.CompareTo(node.Value) < 0)
+        {
+            if (node.Left == null)
+            {
+                node.Left = new Node(value) { Parent = node };
+            }
+            else
+            {
+                Add(node.Left, value);
+            }
+        }
+        else
+        {
+            if (node.Right == null)
+            {
+                node.Right = new Node(value) { Parent = node };
+            }
+            else
+            {
+                Add(node.Right, value);
+            }
+        }
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        return new InOrderIterator(root);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    private class InOrderIterator : IEnumerator<T>
+    {
+        private Node? current;
+        private readonly Node? root;
+        private bool started;
+
+        public InOrderIterator(Node? root)
+        {
+            this.root = root;
+            Reset();
+        }
+
+        public T Current
+        {
+            get
+            {
+                if (current == null)
+                    throw new InvalidOperationException("Итератор не инициализирован.");
+                return current.Value;
+            }
+        }
+
+        object IEnumerator.Current => Current;
+
+        public bool MoveNext()
+        {
+            if (!started)
+            {
+                current = FindLeftmost(root);
+                started = true;
+                return current != null;
+            }
+
+            if (current == null)
+                return false;
+
+            if (current.Right != null)
+            {
+                current = FindLeftmost(current.Right);
+                return true;
+            }
+
+            while (current.Parent != null && current == current.Parent.Right)
+            {
+                current = current.Parent;
+            }
+
+            if (current.Parent == null)
+            {
+                return false;
+            }
+
+            current = current.Parent;
+            return true;
+        }
+
+        public void Reset()
+        {
+            current = null;
+            started = false;
+        }
+
+        public void Dispose()
+        {
+        }
+
+        private Node? FindLeftmost(Node? node)
+        {
+            while (node?.Left != null)
+            {
+                node = node.Left;
+            }
+            return node;
+        }
+    }
+
+    public IEnumerator<T> GetInOrderIterator()
+    {
+        return new InOrderIterator(root);
+    }
+
+    public IEnumerable<T> ReverseInOrderTraversal()
+    {
+        return ReverseInOrderTraversal(root);
+    }
+
+    private IEnumerable<T> ReverseInOrderTraversal(Node? node)
+    {
+        if (node != null)
+        {
+            foreach (var value in ReverseInOrderTraversal(node.Right))
+            {
+                yield return value;
+            }
+
+            yield return node.Value;
+
+            foreach (var value in ReverseInOrderTraversal(node.Left))
+            {
+                yield return value;
+            }
+        }
+    }
+
+    internal IEnumerable<T> CentralTraversal(Func<Node?, IEnumerable<T>> traversalStrategy)
+    {
+        return traversalStrategy(root);
+    }
+
+    internal IEnumerable<T> InOrderTraversal(Node? node)
+    {
+        if (node != null)
+        {
+            foreach (var value in InOrderTraversal(node.Left))
+            {
+                yield return value;
+            }
+            yield return node.Value;
+            foreach (var value in InOrderTraversal(node.Right))
+            {
+                yield return value;
+            }
+        }
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        var tree = new BinaryTree<int>();
+
+        tree.Add(5);
+        tree.Add(3);
+        tree.Add(7);
+        tree.Add(2);
+        tree.Add(4);
+        tree.Add(6);
+        tree.Add(8);
+
+        Console.WriteLine("Прямой обход (In-order):");
+        foreach (var value in tree)
+        {
+            Console.WriteLine(value);
+        }
+
+        Console.WriteLine("Обратный обход (Reverse In-order):");
+        foreach (var value in tree.ReverseInOrderTraversal())
+        {
+            Console.WriteLine(value);
+        }
+
+        Console.WriteLine("Центральный обход с использованием лямбда-выражения:");
+        var centralTraversal = tree.CentralTraversal(node => tree.InOrderTraversal(node));
+        foreach (var value in centralTraversal)
+        {
+            Console.WriteLine(value);
+        }
+    }
+}
